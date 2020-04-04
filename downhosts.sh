@@ -34,6 +34,43 @@ if [[ -f "/tmp/.bashdbg" ]]; then
     trap '_trace_handler' DEBUG
 fi
 
+_ask() {
+    # https://djm.me/ask
+    local prompt default reply
+
+    if [ "${2:-}" = "Y" ]; then
+        prompt="Y/n"
+        default=Y
+    elif [ "${2:-}" = "N" ]; then
+        prompt="y/N"
+        default=N
+    else
+        prompt="y/n"
+        default=
+    fi
+
+    while true; do
+
+        # Ask the question (not using "read -p" as it uses stderr not stdout)
+        echo -n "$1 [$prompt] "
+
+        # Read the answer (use /dev/tty in case stdin is redirected from somewhere else)
+        read -r reply </dev/tty
+
+        # Default?
+        if [ -z "$reply" ]; then
+            reply=$default
+        fi
+
+        # Check if the reply is valid
+        case "$reply" in
+        Y* | y*) return 0 ;;
+        N* | n*) return 1 ;;
+        esac
+
+    done
+}
+
 _fail() {
     printf '\e[0m'
     printf '\n\e[38;2;200;0;0m%s\e[0m\n' "FAIL: $1"
@@ -96,8 +133,9 @@ _sbcip()
 }
 
 _online() {
+    local ip
     _satelite "Check if $1 can be reached..."
-    local ip=$(_sbcip "$1")
+    ip=$(_sbcip "$1")
     if ping -q -c2 "$ip"; then
         _upmsg "$1 is online!"
         return 0
@@ -107,11 +145,16 @@ _online() {
     fi
 }
 
-_info "Sending shutdown to all hosts"
+_info "Will send 'shutdown -h' now to:"
 for unit in $HOST_NAMES; do
-    if _online "$unit"; then
-        _safe "Shutdown $unit..."
-        ssh "$unit" sudo shutdown -h now || true
-    fi
+    echo -e "\t > $unit"
 done
-_important "Shutdown list completed!"
+if _ask "Do you want to continue?" N; then
+    for unit in $HOST_NAMES; do
+        if _online "$unit"; then
+            _safe "Shutdown $unit..."
+            ssh "$unit" sudo shutdown -h now || true
+        fi
+    done
+    _important "Shutdown list completed!"
+fi

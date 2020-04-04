@@ -85,11 +85,11 @@ _online_check() {
         _upmsg "$1 is online!"
         return 0
     else
-        _warn "$1 is down or can not be reached"
+        _downmsg "$1 is down or can not be reached"
         return 1
     fi
 }
 
 for unit in $NAMES; do
-    _online_check "$unit"
+    _online_check "$unit" || true
 done
