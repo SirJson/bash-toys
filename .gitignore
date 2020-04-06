@@ -255,3 +255,4 @@ README.txt
 # End of https://www.gitignore.io/api/archive,archives,archlinuxpackages,compressedarchive,text,textpattern,code,visualstudiocode,linux
 
 *.list
+*.log
