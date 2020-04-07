@@ -11,7 +11,6 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
     [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
 DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
-EXECDIR="$PWD"
 
 if [[ -f "/tmp/.bashdbg" ]]; then
     _DEBUGPIPE=$(mktemp)
@@ -56,6 +55,7 @@ trap '_terminate_handler' SIGINT SIGTERM
 trap '_error_handler $BASH_COMMAND $?' ERR
 
 OPTIND=1 # Reset in case getopts has been used previously in the shell.
+ACTION="{$1:-'help'}"
 
 mssql_start() {
     systemctl start mssql-server || true
@@ -65,5 +65,16 @@ mssql_stop() {
     systemctl stop mssql-server || true
 }
 
-mssql_"$1"
+mssql_help()
+{
+    echo "Usage: $0 [CMD]"
+    echo "Commands:"
+    echo -e "\tstart"
+    echo -e "\tstop"
+    echo -e "\thelp"
+}
+
+mssql_"$ACTION"
+
+
 systemctl --no-pager status mssql-server || true
