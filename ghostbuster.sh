@@ -1,4 +1,7 @@
 #!/bin/bash
+
+# Removes links and every other trace to a file that doesn't exist anymore.
+
 # shellcheck disable=SC2068
 set -Euo pipefail
 _DEBUGPIPE=''
@@ -11,7 +14,6 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
     [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE" # if $SOURCE was a relative symlink, we need to resolve it relative to the path where the symlink file was located
 done
 DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
-EXECDIR="$PWD"
 
 if [[ -f "/tmp/.bashdbg" ]]; then
     _DEBUGPIPE=$(mktemp)
@@ -57,9 +59,8 @@ trap '_error_handler $BASH_COMMAND $?' ERR
 
 OPTIND=1 # Reset in case getopts has been used previously in the shell.
 
-for script in ./*.sh; do
-    fullpath=$(readlink -f "$script")
-    source="${fullpath%.sh}"
-    base=$(basename "$source")
-    ln -sfv "$fullpath" "$HOME/.local/bin/$base"
+_info "Removing everything that doesn't exist in $PWD..."
+
+for link in ./*; do
+    test ! -e "$link" && rm -iv "$link";
 done
