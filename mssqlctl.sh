@@ -55,7 +55,7 @@ trap '_terminate_handler' SIGINT SIGTERM
 trap '_error_handler $BASH_COMMAND $?' ERR
 
 OPTIND=1 # Reset in case getopts has been used previously in the shell.
-ACTION="{$1:-'help'}"
+ACTION="$1"
 
 mssql_start() {
     systemctl start mssql-server || true
