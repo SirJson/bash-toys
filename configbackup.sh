@@ -88,36 +88,22 @@ _box_out() {
 ┗━${s//?/━}━┛"
 }
 
-mkbackup() {
-    tmpdir=$(mktemp -d)
-    extlist=$(mktemp)
-    utime=$(date +%s)
-    kname=$(uname -s | tr '[:upper:]' '[:lower:]')
-    krelease=$(uname -r | tr '[:upper:]' '[:lower:]')
-    archive="vscode-config-$kname-$krelease-$utime.tar.gz"
-    snapshotpath="./vscode-configs"
-    settingssrc="$HOME/.config/Code/User/settings.json"
-    keybindingssrc="$HOME/.config/Code/User/keybindings.json"
+utime=$(date +%s)
+kname=$(uname -s | tr '[:upper:]' '[:lower:]')
+krelease=$(uname -r | tr '[:upper:]' '[:lower:]')
+tmpdir=$(mktemp -d)
+tarname="config-$utime-$kname-$krelease.tar"
+remotedir="./linuxconf-backups"
 
-    desc=('-> Copy extensions' '-> Copy settings' '-> Copy keybindings' '-> Create upload archive' '-> Ensure target directory exists' '-> Move archive to backup server' '-> Cleanup')
-    step=("cp -v $extlist $tmpdir/extensions.list" "cp -v $keybindingssrc $tmpdir/settings.json" "cp -v $settingssrc $tmpdir/keybindings.json" "tar -czvf $archive -C $tmpdir ." "ssh $BACKUPSRV -- mkdir -pv $snapshotpath" "scp $archive $BACKUPSRV:$snapshotpath" "rm $archive")
-    code --list-extensions &>"$extlist"
-    _box_out_ml "VSCode Backup" " " " => Backup path: '$BACKUPSRV:$snapshotpath'"
-
-    total=${#step[*]}
-    info "Total steps: $total"
-    #
-    for ((i = 0; i <= $((total - 1)); i++)); do
-        _box_out "${desc[$i]}"
-        sc=${step[$i]}
-        execinfo "$sc"
-        reset
-        $sc
-        pok
-    done
-}
+_box_out_ml "User config backup", "", "for .config, zsh tmux etc.."
 
 
-mkbackup
-
-#TODO: Allgemeines backupscript
+_box_out "Build tarball"
+tar --exclude-vcs --exclude-backups --acls -v -p -f "$tmpdir/$tarname" -c ~/.config ~/.z* ~/.zsh/* ~/.profile ~/.tmux* ~/.tmux/* ~/.ssh
+_box_out "Compress tarball"
+xz -zev --threads=0 "$tmpdir/$tarname"
+_box_out "Send tarball to backup server tarball"
+ssh "$BACKUPSRV" -- mkdir -pv "$remotedir"
+scp "$tmpdir/$tarname.xz" "$BACKUPSRV:$remotedir"
+_box_out "Cleanup"
+rm "$tmpdir/$tarname.xz"

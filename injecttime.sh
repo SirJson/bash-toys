@@ -37,11 +37,6 @@ if [[ -f "/tmp/.bashdbg" ]]; then
     trap '_trace_handler' DEBUG
 fi
 
-_fail() {
-    printf '\e[0m'
-    printf '\n\e[38;2;200;0;0m%s\e[0m\n' "FAIL: $1"
-    exit 1
-}
 
 _info() {
     printf '\e[0m'
@@ -69,6 +64,12 @@ _upmsg() {
     printf '\t\e[38;2;0;200;0m %s %s\e[0m\n' "$_EUP" "$1"
 }
 
+_fail() {
+    printf '\e[0m'
+    printf '\n\e[31m%s\e[0m\n' "FAIL: $1"
+    exit 1
+}
+
 _terminate_handler() {
     _fail "Caught terminate signal"
 }
@@ -76,11 +77,9 @@ _terminate_handler() {
 _error_handler() {
     ORIGIN=$1
     ERRNO=$2
-    printf '\e[0m'
-    printf '\n\e[1m\e[48;2;236;240;241m\e[38;2;200;0;0m %s \e[0m' "!! > Internal failure. Command '$ORIGIN' failed with $ERRNO"
-    printf '\n'
-    exit 1
+    _fail "Command '$ORIGIN' failed. ($ERRNO)"
 }
+
 
 trap '_terminate_handler' SIGINT SIGTERM
 trap '_error_handler $BASH_COMMAND $?' ERR
@@ -91,7 +90,7 @@ NAMES=$(awk -F '=' '{ print $1 }' < "$IPLIST")
 
 _ip()
 {
-    grep "$1" < sbc.list | awk -F '=' '{ print $2 }'
+    grep "$1" < "$IPLIST" | awk -F '=' '{ print $2 }'
 }
 
 _sendtime() {
@@ -102,7 +101,7 @@ _sendtime() {
 }
 
 _reachable() {
-    ping -q -c 1 "$1" > /dev/null 2>&1
+    ping -c 1 "$1"
 }
 
 
